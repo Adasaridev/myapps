@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>StockFlow | Market News & Insights</title>
+    <!-- Google Fonts + Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN for sparklines / mini charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f6f8fc;
+            font-family: 'Inter', sans-serif;
+            color: #121926;
+            line-height: 1.4;
+        }
+
+        /* modern glassmorphic navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(2px);
+            border-bottom: 1px solid #e9edf2;
+            padding: 0.9rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.6rem;
+            letter-spacing: -0.5px;
+        }
+        .logo i {
+            color: #0066cc;
+            font-size: 1.8rem;
+        }
+        .logo span {
+            background: linear-gradient(135deg, #0b2b44, #0066cc);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none;
+            font-weight: 500;
+            color: #2c3e50;
+            transition: 0.2s;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #0066cc;
+        }
+        .badge-market {
+            background: #eef2ff;
+            padding: 0.3rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.8rem 2rem;
+        }
+
+        /* Hero / Market Ticker section */
+        .market-ticker {
+            background: linear-gradient(115deg, #ffffff 0%, #f8fafd 100%);
+            border-radius: 2rem;
+            padding: 1.2rem 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #eef2f8;
+        }
+        .ticker-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: #5b6e8c;
+            margin-bottom: 0.8rem;
+        }
+        .stocks-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: space-between;
+        }
+        .stock-card {
+            flex: 1;
+            min-width: 140px;
+        }
+        .stock-symbol {
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+        .stock-price {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .change {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 40px;
+            padding: 2px 10px;
+        }
+        .positive { color: #0f7b3a; background: #e5f6ed; }
+        .negative { color: #c2410c; background: #ffeae5; }
+        .chart-container {
+            width: 100%;
+            height: 50px;
+            margin-top: 8px;
+        }
+
+        /* two column layout: news + market movers */
+        .two-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .news-column {
+            flex: 2.5;
+            min-width: 260px;
+        }
+        .movers-column {
+            flex: 1.2;
+            min-width: 260px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.2rem;
+            border-left: 4px solid #0066cc;
+            padding-left: 1rem;
+        }
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .section-link {
+            font-size: 0.8rem;
+            color: #0066cc;
+            font-weight: 500;
+        }
+
+        /* news cards */
+        .news-item {
+            background: white;
+            border-radius: 1.2rem;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            border: 1px solid #eef2f6;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .news-item:hover {
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #dce3ec;
+        }
+        .news-img {
+            width: 80px;
+            height: 80px;
+            background: #eef2fa;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #2c6280;
+        }
+        .news-content {
+            flex: 1;
+        }
+        .news-category {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #0066cc;
+            text-transform: uppercase;
+        }
+        .news-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin: 6px 0;
+            line-height: 1.35;
+        }
+        .news-summary {
+            font-size: 0.85rem;
+            color: #4a5b79;
+        }
+        .news-time {
+            font-size: 0.7rem;
+            color: #8b9ab0;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* movers list */
+        .mover-list {
+            background: white;
+            border-radius: 1.5rem;
+            border: 1px solid #eef2f6;
+            overflow: hidden;
+        }
+        .mover-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #edf2f7;
+            transition: 0.1s;
+        }
+        .mover-item:last-child {
+            border-bottom: none;
+        }
+        .mover-info .name {
+            font-weight: 700;
+        }
+        .mover-info .symbol {
+            font-size: 0.7rem;
+            color: #6d7f97;
+        }
+        .mover-change {
+            font-weight: 700;
+        }
+
+        /* watchlist / sentiment section */
+        .insight-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .card-glass {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.4rem;
+            flex: 1;
+            border: 1px solid #eef2f8;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .sentiment-tag {
+            display: inline-block;
+            background: #eef2ff;
+            border-radius: 60px;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .trend-up { color: #0f7b3a; }
+        .trend-down { color: #c2410c; }
+
+        footer {
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 2rem;
+            padding: 1.8rem;
+            font-size: 0.75rem;
+            color: #5e6f8d;
+        }
+        @media (max-width: 780px) {
+            .container { padding: 1rem; }
+            .navbar { padding: 0.8rem 1rem; flex-direction: column; gap: 10px; }
+            .stocks-grid { gap: 1rem; }
+            .stock-price { font-size: 1.2rem; }
+            .news-img { width: 50px; height: 50px; font-size: 1.5rem; }
+        }
+        button, a { cursor: pointer; }
+        .refresh-btn {
+            background: transparent;
+            border: none;
+            color: #0066cc;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-chart-line"></i>
+            <span>StockFlow</span>
+            <span style="font-size: 0.7rem; background: #eef2ff; padding: 2px 8px; border-radius: 40px; margin-left: 8px;"> Markets</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active">Dashboard</a>
+            <a href="#">News</a>
+            <a href="#">Markets</a>
+            <a href="#">Watchlist</a>
+            <div class="badge-market"><i class="fas fa-clock"></i> Live data · simulated</div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Market Ticker (real-time like simulation with mini charts) -->
+        <div class="market-ticker">
+            <div class="ticker-title"><i class="fas fa-chart-simple"></i> MARKET SNAPSHOT — major indices</div>
+            <div class="stocks-grid" id="stocksGrid">
+                <!-- dynamic stock cards will be injected via JS + charts -->
+            </div>
+        </div>
+
+        <!-- Two column layout: Latest News + Top Movers -->
+        <div class="two-columns">
+            <div class="news-column">
+                <div class="section-header">
+                    <h2><i class="fas fa-newspaper"></i> Financial headlines</h2>
+                    <a href="#" class="section-link">All news <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div id="newsFeed">
+                    <!-- dynamic news -->
+                </div>
+            </div>
+
+            <div class="movers-column">
+                <div class="section-header">
+                    <h2><i class="fas fa-rocket"></i> Top movers</h2>
+                    <button class="section-link refresh-btn" id="refreshMovers"><i class="fas fa-sync-alt"></i> refresh</button>
+                </div>
+                <div class="mover-list" id="moversList">
+                    <!-- dynamic movers content -->
+                </div>
+                <div class="card-glass" style="margin-top: 1.2rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span><i class="fas fa-chart-pie"></i> Market sentiment</span>
+                        <span class="sentiment-tag" id="sentimentBadge">Bullish</span>
+                    </div>
+                    <div style="margin-top: 12px; font-size: 0.85rem;" id="sentimentText">
+                        Investor optimism drives tech gains ahead of Fed meeting.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional insight row: analyst picks & upcoming earnings -->
+        <div class="insight-row">
+            <div class="card-glass">
+                <div><i class="fas fa-lightbulb"></i> <strong>Analyst top picks</strong></div>
+                <div style="margin-top: 14px;">
+                    <div><span style="font-weight:700;">NVDA</span> <span class="trend-up">+2.3%</span> <span style="font-size:0.7rem; margin-left:8px;">Overweight</span></div>
+                    <div style="margin-top: 12px;"><span style="font-weight:700;">MSFT</span> <span class="trend-up">+1.1%</span> <span style="font-size:0.7rem;">Buy rating</span></div>
+                    <div style="margin-top: 12px;"><span style="font-weight:700;">JPM</span> <span class="trend-up">+0.9%</span> <span style="font-size:0.7rem;">Upside 12%</span></div>
+                </div>
+            </div>
+            <div class="card-glass">
+                <div><i class="fas fa-calendar-week"></i> <strong>Upcoming earnings</strong></div>
+                <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px;">
+                    <div><span style="font-weight:700;">Apple (AAPL)</span> <span style="float:right;">May 28</span><br><span style="font-size:0.7rem;">Est. EPS: $1.52</span></div>
+                    <div><span style="font-weight:700;">Amazon (AMZN)</span> <span style="float:right;">May 30</span><br><span style="font-size:0.7rem;">Revenue expected +11%</span></div>
+                    <div><span style="font-weight:700;">Meta (META)</span> <span style="float:right;">Jun 4</span><br><span style="font-size:0.7rem;">AI focus</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <i class="fas fa-chart-line"></i> StockFlow — real-time market data simulation for demo purposes. Data delayed 15 min for indices.
+    </footer>
+
+    <script>
+        // ---------- MOCK DATA WITH MINI CHARTS (Chart.js) ----------
+        // Stock indices data
+        const stocksData = [
+            { symbol: "S&P 500", price: 5321.45, change: 0.86, changePct: 0.86, positive: true, chartData: [5310, 5325, 5318, 5330, 5328, 5321, 5328, 5322] },
+            { symbol: "Nasdaq", price: 18732.12, change: 142.30, changePct: 0.76, positive: true, chartData: [18620, 18690, 18710, 18745, 18730, 18715, 18732, 18750] },
+            { symbol: "Dow Jones", price: 39876.54, change: -42.18, changePct: -0.11, positive: false, chartData: [39920, 39900, 39880, 39845, 39870, 39860, 39876, 39850] },
+            { symbol: "Russell 2K", price: 2043.20, change: 8.95, changePct: 0.44, positive: true, chartData: [2032, 2038, 2040, 2045, 2042, 2041, 2043, 2046] }
+        ];
+
+        // Movers data (gainers/losers)
+        let moversData = [
+            { name: "NVIDIA Corp", symbol: "NVDA", price: 946.30, changePct: 5.2, positive: true },
+            { name: "Tesla Inc", symbol: "TSLA", price: 178.45, changePct: 3.8, positive: true },
+            { name: "Intel Corp", symbol: "INTC", price: 31.22, changePct: -2.4, positive: false },
+            { name: "Moderna Inc", symbol: "MRNA", price: 110.75, changePct: -1.9, positive: false },
+            { name: "Coinbase", symbol: "COIN", price: 224.60, changePct: 6.7, positive: true }
+        ];
+
+        // News articles (finance focused)
+        const newsArticles = [
+            { category: "FEDERAL RESERVE", title: "Fed signals rate cuts ahead as inflation cools more than expected", summary: "Powell comments boost market optimism, bond yields drop sharply.", time: "2 hours ago", icon: "fas fa-dollar-sign" },
+            { category: "TECHNOLOGY", title: "Apple unveils new AI strategy, stock surges to all-time high", summary: "Investors react positively to on-device AI integration across iPhone lineup.", time: "5 hours ago", icon: "fab fa-apple" },
+            { category: "ENERGY", title: "Oil prices slide on rising US crude inventories and OPEC+ uncertainty", summary: "WTI crude falls below $78 per barrel; energy stocks mixed.", time: "9 hours ago", icon: "fas fa-oil-can" },
+            { category: "CRYPTO", title: "Bitcoin regains $67,000 as ETF inflows accelerate", summary: "Institutional demand drives crypto rally; Ether up 9% this week.", time: "12 hours ago", icon: "fab fa-bitcoin" },
+            { category: "RETAIL", title: "Target, Walmart beat estimates — consumer spending remains resilient", summary: "Both retailers raised full-year outlooks amid strong foot traffic.", time: "yesterday", icon: "fas fa-store" }
+        ];
+
+        // Additional helper to update sentiment based on random mover (just for demo)
+        function updateSentiment() {
+            const sentimentElem = document.getElementById('sentimentBadge');
+            const sentimentTextElem = document.getElementById('sentimentText');
+            const options = [
+                { badge: "Bullish", text: "Tech rally leads broad market optimism, VIX at 3-month low." },
+                { badge: "Neutral", text: "Markets await key inflation data; sideways momentum." },
+                { badge: "Cautious", text: "Geopolitical tensions weigh, but earnings provide support." },
+                { badge: "Greed", text: "Fear & Greed index moves to 72 (Greed) – risk appetite high." }
+            ];
+            const random = Math.floor(Math.random() * options.length);
+            sentimentElem.innerText = options[random].badge;
+            sentimentTextElem.innerText = options[random].text;
+        }
+
+        // Initialize mini charts for each stock card
+        let charts = [];
+        function initMiniCharts() {
+            stocksData.forEach((stock, idx) => {
+                const canvasId = `spark-${idx}`;
+                const canvasElem = document.getElementById(canvasId);
+                if (canvasElem) {
+                    const ctx = canvasElem.getContext('2d');
+                    // if chart exists destroy previous
+                    if (charts[idx]) charts[idx].destroy();
+                    charts[idx] = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Array(stock.chartData.length).fill(''),
+                            datasets: [{
+                                data: stock.chartData,
+                                borderColor: stock.positive ? '#0f7b3a' : '#c2410c',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.2,
+                                pointRadius: 0,
+                                pointHoverRadius: 0,
+                                spanGaps: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                            scales: { x: { display: false }, y: { display: false } },
+                            elements: { line: { borderJoin: 'round' } }
+                        }
+                    });
+                }
+            });
+        }
+
+        function renderStockTicker() {
+            const grid = document.getElementById('stocksGrid');
+            if (!grid) return;
+            let html = '';
+            stocksData.forEach((stock, idx) => {
+                const changeClass = stock.positive ? 'positive' : 'negative';
+                const sign = stock.positive ? '+' : '';
+                html += `
+                    <div class="stock-card">
+                        <div class="stock-symbol">${stock.symbol}</div>
+                        <div class="stock-price">$${stock.price.toFixed(2)}</div>
+                        <div class="change ${changeClass}"><i class="fas fa-${stock.positive ? 'arrow-up' : 'arrow-down'}"></i> ${sign}${stock.changePct}%</div>
+                        <div class="chart-container"><canvas id="spark-${idx}" width="200" height="50" style="height:50px; width:100%"></canvas></div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+            // after dom update, init charts
+            setTimeout(() => { initMiniCharts(); }, 20);
+        }
+
+        function renderNews() {
+            const newsContainer = document.getElementById('newsFeed');
+            if (!newsContainer) return;
+            let newsHtml = '';
+            newsArticles.forEach(article => {
+                newsHtml += `
+                    <div class="news-item">
+                        <div class="news-img"><i class="${article.icon} fa-2x"></i></div>
+                        <div class="news-content">
+                            <div class="news-category">${article.category}</div>
+                            <div class="news-title">${article.title}</div>
+                            <div class="news-summary">${article.summary}</div>
+                            <div class="news-time"><i class="far fa-clock"></i> ${article.time}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            newsContainer.innerHTML = newsHtml;
+        }
+
+        function renderMovers() {
+            const moverContainer = document.getElementById('moversList');
+            if (!moverContainer) return;
+            let moversHtml = '';
+            moversData.forEach(mover => {
+                const changeClass = mover.positive ? 'positive' : 'negative';
+                const sign = mover.positive ? '+' : '';
+                moversHtml += `
+                    <div class="mover-item">
+                        <div class="mover-info">
+                            <div class="name">${mover.name}</div>
+                            <div class="symbol">${mover.symbol}</div>
+                        </div>
+                        <div class="mover-change ${changeClass}">${sign}${mover.changePct}%</div>
+                    </div>
+                `;
+            });
+            moverContainer.innerHTML = moversHtml;
+        }
+
+        // Simulate refreshing market data (randomize prices and movers)
+        function refreshMarketData() {
+            // random slight price movements for stocks
+            stocksData.forEach(stock => {
+                const volatility = (Math.random() - 0.5) * 1.2;
+                let newPct = stock.changePct + volatility;
+                if (newPct > 2.5) newPct = 2.4;
+                if (newPct < -1.8) newPct = -1.6;
+                stock.changePct = parseFloat(newPct.toFixed(2));
+                stock.positive = stock.changePct >= 0;
+                // adjust price simulation roughly
+                const deltaPercent = stock.changePct / 100;
+                let newPrice = stock.price * (1 + deltaPercent);
+                if (stock.symbol === "S&P 500") newPrice = Math.max(5100, Math.min(5450, newPrice));
+                if (stock.symbol === "Nasdaq") newPrice = Math.max(18000, Math.min(19200, newPrice));
+                if (stock.symbol === "Dow Jones") newPrice = Math.max(38500, Math.min(41000, newPrice));
+                stock.price = parseFloat(newPrice.toFixed(2));
+                // modify last chart point to reflect new movement
+                if (stock.chartData && stock.chartData.length > 0) {
+                    let lastVal = stock.chartData[stock.chartData.length-1];
+                    let shift = lastVal * (deltaPercent * 0.6);
+                    let newLast = lastVal + shift;
+                    stock.chartData.push(parseFloat(newLast.toFixed(1)));
+                    stock.chartData.shift();
+                }
+            });
+            
+            // randomize movers list (permute and adjust percentages)
+            const randomMovers = [
+                { name: "AMD", symbol: "AMD", price: 156.20, changePct: (Math.random() * 7 - 2).toFixed(1), positive: true },
+                { name: "Palantir", symbol: "PLTR", price: 23.45, changePct: (Math.random() * 8 - 3).toFixed(1), positive: Math.random() > 0.5 },
+                { name: "Super Micro", symbol: "SMCI", price: 895.30, changePct: (Math.random() * 9 - 3).toFixed(1), positive: true },
+                { name: "Boeing", symbol: "BA", price: 183.70, changePct: (-Math.random() * 3).toFixed(1), positive: false },
+                { name: "Netflix", symbol: "NFLX", price: 612.55, changePct: (Math.random() * 4 + 0.2).toFixed(1), positive: true }
+            ];
+            // pick some fresh movers but keep realistic variety
+            moversData = randomMovers.map(m => ({
+                name: m.name, symbol: m.symbol, price: m.price,
+                changePct: parseFloat(m.changePct), positive: m.changePct >= 0
+            }));
+            
+            // force some up/down for demo
+            renderStockTicker();
+            renderMovers();
+            updateSentiment();
+            // optional small toast effect (feel fresh)
+            const toastDiv = document.createElement('div');
+            toastDiv.innerText = "🔄 Market data refreshed";
+            toastDiv.style.position = "fixed";
+            toastDiv.style.bottom = "20px";
+            toastDiv.style.right = "20px";
+            toastDiv.style.background = "#1f2c3e";
+            toastDiv.style.color = "white";
+            toastDiv.style.padding = "8px 18px";
+            toastDiv.style.borderRadius = "40px";
+            toastDiv.style.fontSize = "0.8rem";
+            toastDiv.style.zIndex = "999";
+            document.body.appendChild(toastDiv);
+            setTimeout(() => toastDiv.remove(), 2000);
+        }
+
+        // initial load
+        function init() {
+            renderStockTicker();
+            renderNews();
+            renderMovers();
+            updateSentiment();
+            // attach refresh button event
+            const refreshBtn = document.getElementById('refreshMovers');
+            if (refreshBtn) refreshBtn.addEventListener('click', () => refreshMarketData());
+            // optional auto refresh every 40 seconds to simulate live feed
+            setInterval(() => {
+                refreshMarketData();
+            }, 40000);
+        }
+
+        // also refresh on load any layout adapt
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
